@@ -68,10 +68,10 @@
         <p class="text-xs text-muted mt-1">Masuk untuk melihat rekap suara dan data pemilih.</p>
       </div>
 
-      <form id="auth-form" class="space-y-4">
+      <form id="auth-form" class="space-y-4" onsubmit="return false;">
         <div>
           <label class="block text-xs font-mono text-muted mb-1.5" for="auth-email">Email Admin</label>
-          <input id="auth-email" required type="email" placeholder="admin@himatekkom.org"
+          <input id="auth-email" required type="email" placeholder="himatekkomug@gmail.com"
             class="w-full bg-surface2 border border-hairline rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-muted/50 focus:outline-none focus:border-cyan" />
         </div>
         <div>
@@ -82,7 +82,7 @@
 
         <p id="auth-message" class="text-xs font-mono hidden text-red-400 break-words"></p>
 
-        <button id="btn-login" type="submit"
+        <button id="btn-login" type="button"
           class="w-full py-3 rounded-lg bg-cyan text-ink font-semibold text-sm hover:brightness-110 transition shadow-lg">
           Masuk ke Dashboard
         </button>
@@ -188,10 +188,7 @@
     const SUPABASE_URL = 'https://gvymeyyozglpljpgdbfi.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2eW1leXlvemdscGxqcGdkYmZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMzc0ODksImV4cCI6MjEwMDkxMzQ4OX0.2jM9Nf-0sVO9AKAkXIAEuSmlV0TIYVR_32umrehhGLw';
     
-    // Inisialisasi Supabase dengan Session Persistence
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true }
-    });
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let candidatesCache = [];
     let votesCache = [];
@@ -200,8 +197,8 @@
 
     const authScreen = document.getElementById('auth-screen');
     const dashboardScreen = document.getElementById('dashboard-screen');
-    const authForm = document.getElementById('auth-form');
     const authMessage = document.getElementById('auth-message');
+    const btnLogin = document.getElementById('btn-login');
 
     // ================= MANAJEMEN AUTENTIKASI =================
     async function checkAuth() {
@@ -224,12 +221,16 @@
     }
 
     // Process Login
-    authForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    async function handleLogin() {
       authMessage.classList.add('hidden');
       const email = document.getElementById('auth-email').value.trim();
       const password = document.getElementById('auth-password').value;
-      const btnLogin = document.getElementById('btn-login');
+
+      if (!email || !password) {
+        authMessage.textContent = 'Harap isi email dan password.';
+        authMessage.classList.remove('hidden');
+        return;
+      }
 
       btnLogin.disabled = true;
       btnLogin.textContent = 'Memverifikasi...';
@@ -245,12 +246,23 @@
       } else {
         checkAuth();
       }
-    });
+    }
+
+    btnLogin.addEventListener('click', handleLogin);
 
     // Process Logout
     document.getElementById('btn-logout').addEventListener('click', async () => {
       await supabase.auth.signOut();
       checkAuth();
+    });
+
+    // Listener Perubahan Auth State
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        checkAuth();
+      } else if (event === 'SIGNED_OUT') {
+        checkAuth();
+      }
     });
 
     // ================= LOAD & RENDER DATA =================
@@ -368,13 +380,12 @@
       XLSX.utils.book_append_sheet(wb, wsSummary, "Rekapitulasi Suara");
       XLSX.utils.book_append_sheet(wb, wsAudit, "Audit Log Pemilih");
 
-      // Download File Excel
       XLSX.writeFile(wb, `Hasil_Pemilu_HIMATEKKOM_${new Date().toISOString().slice(0,10)}.xlsx`);
     });
 
     document.getElementById('btn-refresh').addEventListener('click', loadData);
 
-    // Cek status login saat halaman dimuat
+    // Jalankan pemeriksaan awal
     checkAuth();
   </script>
 </body>
