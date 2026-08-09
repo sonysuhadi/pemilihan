@@ -1,100 +1,173 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Admin — Hasil Pemilihan HIMATEKKOM</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Hasil Pemilihan HIMATEKKOM</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: { 
-          ink: '#060B14', surface: '#0F1826', surface2: '#16213A', 
-          hairline: '#22304A', cyan: '#4CE0C7', amber: '#F5B942', muted: '#7C8AAE' 
-        },
-        fontFamily: { 
-          display: ['"Space Grotesk"', 'sans-serif'], 
-          body: ['Inter', 'sans-serif'], 
-          mono: ['"JetBrains Mono"', 'monospace'] 
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { 
+            ink: '#070B17', surface: '#101A2D', surface2: '#182642', 
+            hairline: '#273858', cyan: '#55E6CE', amber: '#F5B942', muted: '#91A0C3' 
+          },
+          fontFamily: { 
+            display: ['"Space Grotesk"', 'sans-serif'], 
+            body: ['Inter', 'sans-serif'], 
+            mono: ['"JetBrains Mono"', 'monospace'] 
+          },
         },
       },
-    },
-  };
-</script>
+    };
+  </script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- SheetJS untuk Export Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-<style>
-  body { background-color: #060B14; }
-  .circuit-bg {
-    background-image: linear-gradient(#1B2740 1px, transparent 1px), linear-gradient(90deg, #1B2740 1px, transparent 1px);
-    background-size: 44px 44px;
-    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black 30%, transparent 85%);
-    mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black 30%, transparent 85%);
-  }
-  .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
-  @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(76,224,199,.55);} 50% { box-shadow: 0 0 0 6px rgba(76,224,199,0);} }
-  .bar-fill { transition: width 0.8s cubic-bezier(0.16,1,0.3,1); }
-  .bar-glow { box-shadow: 0 0 14px 0 rgba(76,224,199,0.4); }
-</style>
+  <style>
+    body {
+      background: radial-gradient(circle at 14% -5%, rgba(85,230,206,.15), transparent 30rem), radial-gradient(circle at 92% 10%, rgba(75,104,194,.15), transparent 28rem), #070B17;
+    }
+    .glass-panel { background: linear-gradient(135deg, rgba(24,38,66,.82), rgba(16,26,45,.9)); box-shadow: 0 20px 50px rgba(0,0,0,.18), inset 0 1px rgba(255,255,255,.035); }
+    .circuit-bg {
+      background-image: linear-gradient(#1B2740 1px, transparent 1px), linear-gradient(90deg, #1B2740 1px, transparent 1px);
+      background-size: 44px 44px;
+      -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black 30%, transparent 85%);
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black 30%, transparent 85%);
+    }
+    .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
+    @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(76,224,199,.55);} 50% { box-shadow: 0 0 0 6px rgba(76,224,199,0);} }
+    .bar-fill { transition: width 0.8s cubic-bezier(0.16,1,0.3,1); }
+    .bar-glow { box-shadow: 0 0 14px 0 rgba(76,224,199,0.4); }
+    .stat-card { position: relative; overflow: hidden; transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+    .stat-card::after { content: ''; position: absolute; width: 100px; height: 100px; right: -36px; top: -42px; border-radius: 999px; background: rgba(85,230,206,.08); }
+    .stat-card:hover { transform: translateY(-4px); border-color: rgba(85,230,206,.5); box-shadow: 0 18px 32px rgba(0,0,0,.22); }
+    .table-row { transition: background-color .2s ease; }
+    .table-row:hover { background: rgba(85,230,206,.055); }
+  </style>
 </head>
 
-<body class="font-body text-[#EDF2FF] min-h-screen">
+<body class="font-body text-[#EDF2FF] min-h-screen flex flex-col justify-between">
 
-  <div id="dashboard-screen">
+  <!-- ============ AUTH / LOGIN SCREEN ============ -->
+  <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 relative">
+    <div class="absolute inset-0 circuit-bg pointer-events-none"></div>
+    
+    <div class="w-full max-w-md glass-panel border border-hairline rounded-2xl p-6 sm:p-8 relative z-10 shadow-2xl">
+      <div class="text-center mb-6">
+        <p class="font-mono text-xs text-cyan mb-1">ADMIN_PORTAL</p>
+        <h2 class="font-display text-2xl font-bold text-white">Login Panel Admin</h2>
+        <p class="text-xs text-muted mt-1">Masuk untuk melihat rekap suara dan data pemilih.</p>
+      </div>
+
+      <form id="auth-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-mono text-muted mb-1.5" for="auth-email">Email Admin</label>
+          <input id="auth-email" required type="email" placeholder="admin@himatekkom.org"
+            class="w-full bg-surface2 border border-hairline rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-muted/50 focus:outline-none focus:border-cyan" />
+        </div>
+        <div>
+          <label class="block text-xs font-mono text-muted mb-1.5" for="auth-password">Password</label>
+          <input id="auth-password" required type="password" placeholder="••••••••"
+            class="w-full bg-surface2 border border-hairline rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-muted/50 focus:outline-none focus:border-cyan" />
+        </div>
+
+        <p id="auth-message" class="text-xs font-mono hidden text-red-400 break-words"></p>
+
+        <button id="btn-login" type="submit"
+          class="w-full py-3 rounded-lg bg-cyan text-ink font-semibold text-sm hover:brightness-110 transition shadow-lg">
+          Masuk ke Dashboard
+        </button>
+      </form>
+
+      <!-- Akses Luar: Pendaftaran & Public Voting -->
+      <div class="mt-6 pt-5 border-t border-hairline/60 flex flex-col gap-2">
+        <p class="text-[11px] font-mono text-center text-muted">MENU AKSES LUAR:</p>
+        <div class="grid grid-cols-2 gap-2 text-xs font-mono text-center">
+          <a href="pendaftaran.html" class="py-2 px-3 rounded bg-surface2 border border-hairline text-cyan hover:border-cyan transition">
+            + Pendaftaran Paslon
+          </a>
+          <a href="index.html" class="py-2 px-3 rounded bg-surface2 border border-hairline text-amber hover:border-amber transition">
+            ← Halaman Voting
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DASHBOARD SCREEN ============ -->
+  <div id="dashboard-screen" class="hidden min-h-screen">
     <header class="relative overflow-hidden border-b border-hairline">
       <div class="absolute inset-0 circuit-bg pointer-events-none"></div>
-      <div class="relative max-w-6xl mx-auto px-6 pt-8 pb-6 flex flex-wrap items-start justify-between gap-4">
+      <div class="relative max-w-6xl mx-auto px-5 sm:px-6 pt-8 sm:pt-10 pb-8 flex flex-wrap items-start justify-between gap-5">
         <div>
           <div class="flex items-center gap-2 text-xs font-mono text-cyan mb-3">
             <span class="w-2 h-2 rounded-full bg-cyan pulse-dot"></span>
             <span id="live-text">LIVE · AUTO-REFRESH 5s</span>
           </div>
-          <h1 class="font-display font-bold text-3xl text-white">Rekap Suara<span class="text-cyan">.</span></h1>
+          <p class="font-mono text-[10px] tracking-[.2em] text-muted mb-2">HIMATEKKOM UG / 2026</p>
+          <h1 class="font-display font-bold text-3xl sm:text-4xl text-white tracking-tight">Rekap Suara<span class="text-cyan">.</span></h1>
         </div>
-        <div class="flex items-center gap-2 text-xs font-mono">
+        
+        <div class="flex flex-wrap items-center gap-2 text-xs font-mono">
+          <button id="btn-export-excel" class="px-3 py-2 rounded bg-cyan/10 border border-cyan text-cyan hover:bg-cyan hover:text-ink transition font-semibold">
+            📥 Export Excel
+          </button>
+          <a href="pendaftaran.html" class="px-3 py-2 rounded border border-hairline hover:border-cyan hover:text-cyan transition">+ Calon</a>
           <button id="btn-refresh" class="px-3 py-2 rounded border border-hairline hover:border-cyan hover:text-cyan transition">↻ Refresh</button>
           <a href="index.html" class="px-3 py-2 rounded border border-hairline hover:border-amber hover:text-amber transition">← Voting</a>
+          <button id="btn-logout" class="px-3 py-2 rounded bg-red-500/10 border border-red-500/40 text-red-400 hover:bg-red-500 hover:text-white transition">
+            Logout
+          </button>
         </div>
       </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-6 py-8 space-y-8">
+    <main class="max-w-6xl mx-auto px-5 sm:px-6 py-8 sm:py-10 space-y-10">
       <!-- Ringkasan Statistik -->
       <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div class="bg-surface border border-hairline rounded-xl p-5">
+        <div class="stat-card glass-panel border border-hairline rounded-2xl p-5">
           <p class="text-xs font-mono text-muted mb-2">TOTAL_SUARA</p>
           <p id="stat-total" class="font-display text-3xl text-white">0</p>
         </div>
-        <div class="bg-surface border border-hairline rounded-xl p-5">
+        <div class="stat-card glass-panel border border-hairline rounded-2xl p-5">
           <p class="text-xs font-mono text-muted mb-2">KANDIDAT</p>
           <p id="stat-candidates" class="font-display text-3xl text-white">0</p>
         </div>
-        <div class="bg-surface border border-hairline rounded-xl p-5 col-span-2 sm:col-span-1">
+        <div class="stat-card glass-panel border border-hairline rounded-2xl p-5 col-span-2 sm:col-span-1">
           <p class="text-xs font-mono text-muted mb-2">TERDEPAN</p>
           <p id="stat-leader" class="font-display text-lg text-cyan truncate">-</p>
         </div>
-        <div class="bg-surface border border-hairline rounded-xl p-5">
+        <div class="stat-card glass-panel border border-hairline rounded-2xl p-5">
           <p class="text-xs font-mono text-muted mb-2">SELISIH</p>
           <p id="stat-margin" class="font-display text-3xl text-white">0</p>
         </div>
       </section>
 
-      <!-- Perolehan Suara -->
+      <!-- Grafik/Bar Suara -->
       <section>
-        <h2 class="font-display text-xl text-white mb-4">Perolehan Suara</h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display text-xl sm:text-2xl text-white">Perolehan Suara</h2>
+          <span class="font-mono text-[10px] tracking-widest text-muted">REAL-TIME RANKING</span>
+        </div>
         <div id="results-list" class="space-y-4"></div>
       </section>
 
-      <!-- Log Pemilih -->
+      <!-- Audit Log Pemilih -->
       <section>
-        <h2 class="font-display text-xl text-white mb-4">Log Pemilih</h2>
-        <div class="border border-hairline rounded-xl overflow-x-auto bg-surface">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display text-xl sm:text-2xl text-white">Log Pemilih</h2>
+          <span class="font-mono text-[10px] tracking-widest text-muted">AUDIT TRAIL</span>
+        </div>
+        <div class="glass-panel border border-hairline rounded-2xl overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-left text-xs font-mono text-muted border-b border-hairline">
@@ -115,53 +188,93 @@
     const SUPABASE_URL = 'https://gvymeyyozglpljpgdbfi.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2eW1leXlvemdscGxqcGdkYmZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMzc0ODksImV4cCI6MjEwMDkxMzQ4OX0.2jM9Nf-0sVO9AKAkXIAEuSmlV0TIYVR_32umrehhGLw';
     
-    // Menggunakan variabel 'db' agar tidak bentrok dengan variabel global 'supabase'
-    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    // Inisialisasi Supabase dengan Session Persistence
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true }
     });
 
     let candidatesCache = [];
+    let votesCache = [];
+    let resultsCache = [];
+    let autoRefreshTimer = null;
 
+    const authScreen = document.getElementById('auth-screen');
+    const dashboardScreen = document.getElementById('dashboard-screen');
+    const authForm = document.getElementById('auth-form');
+    const authMessage = document.getElementById('auth-message');
+
+    // ================= MANAJEMEN AUTENTIKASI =================
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        authScreen.classList.add('hidden');
+        dashboardScreen.classList.remove('hidden');
+        loadData();
+        if (!autoRefreshTimer) {
+          autoRefreshTimer = setInterval(loadData, 5000);
+        }
+      } else {
+        authScreen.classList.remove('hidden');
+        dashboardScreen.classList.add('hidden');
+        if (autoRefreshTimer) {
+          clearInterval(autoRefreshTimer);
+          autoRefreshTimer = null;
+        }
+      }
+    }
+
+    // Process Login
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      authMessage.classList.add('hidden');
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const btnLogin = document.getElementById('btn-login');
+
+      btnLogin.disabled = true;
+      btnLogin.textContent = 'Memverifikasi...';
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      btnLogin.disabled = false;
+      btnLogin.textContent = 'Masuk ke Dashboard';
+
+      if (error) {
+        authMessage.textContent = 'Login gagal: ' + error.message;
+        authMessage.classList.remove('hidden');
+      } else {
+        checkAuth();
+      }
+    });
+
+    // Process Logout
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      checkAuth();
+    });
+
+    // ================= LOAD & RENDER DATA =================
     async function loadData() {
       try {
         const [{ data: results, error: resErr }, { data: candidates, error: candErr }, { data: votes, error: voteErr }] = await Promise.all([
-          db.rpc('get_results'),
-          db.from('candidates').select('*').order('nomor_urut', { ascending: true }),
-          db.from('votes').select('*').order('created_at', { ascending: false })
+          supabase.rpc('get_results'),
+          supabase.from('candidates').select('*').order('nomor_urut'),
+          supabase.from('votes').select('voter_nim, voter_nama, candidate_id, created_at').order('created_at', { ascending: false })
         ]);
 
-        if (resErr) console.warn('RPC Notice (menggunakan fallback perhitungan otomatis):', resErr.message);
-        if (candErr) console.error('Error Candidates:', candErr.message);
-        if (voteErr) console.error('Error Votes:', voteErr.message);
+        if (resErr) console.error('Error fetching results:', resErr);
+        if (candErr) console.error('Error fetching candidates:', candErr);
+        if (voteErr) console.error('Error fetching votes:', voteErr);
 
         candidatesCache = candidates || [];
-        const voteList = votes || [];
+        votesCache = votes || [];
+        resultsCache = results || [];
 
-        // Hitung manual secara presisi jika RPC tidak merespons
-        let finalResults = [];
-        if (results && results.length > 0) {
-          finalResults = results;
-        } else {
-          const counts = {};
-          voteList.forEach(v => {
-            const cid = String(v.candidate_id);
-            counts[cid] = (counts[cid] || 0) + 1;
-          });
-
-          finalResults = candidatesCache.map(c => ({
-            candidate_id: c.id,
-            nomor_urut: c.nomor_urut,
-            nama_ketua: c.nama_ketua,
-            nama_wakil: c.nama_wakil,
-            total_votes: counts[String(c.id)] || 0
-          }));
-        }
-
-        renderStats(finalResults);
-        renderResults(finalResults);
-        renderAudit(voteList);
+        renderStats(resultsCache);
+        renderResults(resultsCache);
+        renderAudit(votesCache);
       } catch (err) {
-        console.error('Data Load Error:', err);
+        console.error('Data Error:', err);
       }
     }
 
@@ -174,14 +287,7 @@
 
       document.getElementById('stat-total').textContent = total;
       document.getElementById('stat-candidates').textContent = rows.length;
-      
-      if (leader && total > 0) {
-        const name = leader.nama_wakil ? `${leader.nama_ketua} & ${leader.nama_wakil}` : leader.nama_ketua;
-        document.getElementById('stat-leader').textContent = `#${leader.nomor_urut} ${name}`;
-      } else {
-        document.getElementById('stat-leader').textContent = '-';
-      }
-      
+      document.getElementById('stat-leader').textContent = leader && total > 0 ? `#${leader.nomor_urut} ${leader.nama_ketua}` : '-';
       document.getElementById('stat-margin').textContent = total > 0 ? margin : 0;
     }
 
@@ -190,24 +296,17 @@
       const total = rows.reduce((s, r) => s + Number(r.total_votes), 0);
       const maxVotes = Math.max(0, ...rows.map(r => Number(r.total_votes)));
 
-      if (rows.length === 0) {
-        list.innerHTML = `<div class="p-4 bg-surface border border-hairline rounded-xl text-center text-muted font-mono text-xs">Belum ada kandidat terdaftar.</div>`;
-        return;
-      }
-
       list.innerHTML = rows.map(r => {
         const votes = Number(r.total_votes);
         const pct = total > 0 ? Math.round((votes / total) * 1000) / 10 : 0;
         const isLeading = votes > 0 && votes === maxVotes;
-        const paslonName = r.nama_wakil ? `${r.nama_ketua} & ${r.nama_wakil}` : r.nama_ketua;
-
         return `
           <div class="bg-surface border ${isLeading ? 'border-cyan/50' : 'border-hairline'} rounded-xl p-4">
             <div class="flex justify-between items-baseline mb-2 text-sm">
-              <span class="text-white"><span class="font-mono text-cyan">#${String(r.nomor_urut || 1).padStart(2, '0')}</span> ${paslonName}</span>
+              <span class="text-white"><span class="font-mono text-cyan">#${r.nomor_urut}</span> ${r.nama_ketua} ${r.nama_wakil ? '& ' + r.nama_wakil : ''}</span>
               <span class="font-mono text-xs text-muted">${votes} suara · ${pct}%</span>
             </div>
-            <div class="h-2.5 rounded-full bg-surface2 border border-hairline overflow-hidden">
+            <div class="h-2 rounded-full bg-surface2 border border-hairline overflow-hidden">
               <div class="bar-fill h-full rounded-full ${isLeading ? 'bg-cyan bar-glow' : 'bg-cyan/50'}" style="width:${pct}%"></div>
             </div>
           </div>
@@ -217,8 +316,7 @@
 
     function renderAudit(rows) {
       const body = document.getElementById('audit-body');
-      const candMap = {};
-      candidatesCache.forEach(c => { candMap[String(c.id)] = c; });
+      const candMap = Object.fromEntries(candidatesCache.map(c => [c.id, c]));
 
       if (rows.length === 0) {
         body.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-center text-muted font-mono text-xs">Belum ada suara yang masuk.</td></tr>`;
@@ -226,26 +324,58 @@
       }
 
       body.innerHTML = rows.map(v => {
-        const c = candMap[String(v.candidate_id)];
-        const candName = c 
-          ? (c.nama_wakil ? `#${c.nomor_urut} ${c.nama_ketua} & ${c.nama_wakil}` : `#${c.nomor_urut} ${c.nama_ketua}`) 
-          : '—';
-
+        const c = candMap[v.candidate_id];
         return `
-          <tr class="border-b border-hairline/60 text-xs hover:bg-surface2/30 transition">
+          <tr class="border-b border-hairline/60 text-xs table-row">
             <td class="px-4 py-2.5 font-mono text-muted">${new Date(v.created_at).toLocaleString('id-ID')}</td>
             <td class="px-4 py-2.5 font-mono text-white">${v.voter_nim}</td>
             <td class="px-4 py-2.5 text-white">${v.voter_nama}</td>
-            <td class="px-4 py-2.5 text-cyan font-medium">${candName}</td>
+            <td class="px-4 py-2.5 text-cyan">${c ? '#' + c.nomor_urut + ' ' + c.nama_ketua : '—'}</td>
           </tr>
         `;
       }).join('');
     }
 
+    // ================= EXPORT EXCEL (SHEETJS) =================
+    document.getElementById('btn-export-excel').addEventListener('click', () => {
+      const candMap = Object.fromEntries(candidatesCache.map(c => [c.id, c]));
+
+      // Sheet 1: Audit Pemilih
+      const auditData = votesCache.map((v, index) => ({
+        "No": index + 1,
+        "Waktu Memilih": new Date(v.created_at).toLocaleString('id-ID'),
+        "NIM Pemilih": v.voter_nim,
+        "Nama Pemilih": v.voter_nama,
+        "Paslon Dipilih": candMap[v.candidate_id] 
+          ? `Paslon #${candMap[v.candidate_id].nomor_urut} (${candMap[v.candidate_id].nama_ketua})`
+          : '—'
+      }));
+
+      // Sheet 2: Ringkasan Hasil Suara
+      const totalVotesAll = resultsCache.reduce((s, r) => s + Number(r.total_votes), 0);
+      const summaryData = resultsCache.map(r => ({
+        "Nomor Urut": r.nomor_urut,
+        "Nama Ketua": r.nama_ketua,
+        "Nama Wakil": r.nama_wakil || '-',
+        "Total Suara": Number(r.total_votes),
+        "Persentase": totalVotesAll > 0 ? `${((Number(r.total_votes) / totalVotesAll) * 100).toFixed(2)}%` : '0%'
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+      const wsAudit = XLSX.utils.json_to_sheet(auditData);
+
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Rekapitulasi Suara");
+      XLSX.utils.book_append_sheet(wb, wsAudit, "Audit Log Pemilih");
+
+      // Download File Excel
+      XLSX.writeFile(wb, `Hasil_Pemilu_HIMATEKKOM_${new Date().toISOString().slice(0,10)}.xlsx`);
+    });
+
     document.getElementById('btn-refresh').addEventListener('click', loadData);
 
-    loadData();
-    setInterval(loadData, 5000);
+    // Cek status login saat halaman dimuat
+    checkAuth();
   </script>
 </body>
 </html>
