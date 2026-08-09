@@ -131,8 +131,7 @@
       </h1>
       
       <p class="mt-3 sm:mt-4 max-w-xl text-slate-600 dark:text-muted text-xs sm:text-base leading-relaxed">
-        Sistem pemilihan digital untuk memilih Ketua &amp; Wakil Ketua
-        Himpunan Mahasiswa Teknik Komputer UG. Satu NIM, satu suara.
+        Selamat datang di Sistem Pemilihan Digital Ketua & Wakil Ketua Himpunan Mahasiswa Teknik Komputer Universitas Gunadarma. Wujudkan kepemimpinan baru yang aspiratif dan progresif melalui partisipasi aktifmu. Setiap kontribusi sangat berarti karena Satu NPM, Satu Suara menentukan masa depan HIMATEKKOM
       </p>
       <div class="mt-5 sm:mt-7">
         <a href="#kandidat" class="inline-block w-full sm:w-auto text-center px-5 py-2.5 rounded-md bg-cyan text-white dark:text-ink font-semibold text-sm hover:brightness-110 transition shadow-lg">
@@ -205,13 +204,13 @@
 
       <!-- Form Voting State -->
       <div id="modal-form-state">
-        <p class="font-mono text-xs text-cyan mb-1">KONFIRMASI_SUARA</p>
+        <p class="font-mono text-xs text-cyan mb-1">KONFIRMASI SUARA</p>
         <h3 class="font-display text-lg sm:text-xl text-slate-900 dark:text-white mb-1">Anda memilih:</h3>
         <p id="modal-candidate-name" class="text-cyan font-semibold mb-4 text-sm sm:text-base leading-snug">-</p>
 
         <form id="vote-form" class="space-y-4">
           <div>
-            <label class="block text-xs font-mono text-slate-600 dark:text-muted mb-1.5" for="input-nim">NIM</label>
+            <label class="block text-xs font-mono text-slate-600 dark:text-muted mb-1.5" for="input-nim">NPM</label>
             <input id="input-nim" required type="text" placeholder="cth. 23051234"
               class="w-full bg-slate-100 dark:bg-surface2 border border-slate-300 dark:border-hairline rounded-md px-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-muted/60 focus:outline-none focus:border-cyan" />
           </div>
@@ -228,7 +227,7 @@
             Kirim Suara
           </button>
           <p class="text-[11px] text-slate-500 dark:text-muted leading-relaxed">
-            Satu NIM hanya dapat memilih satu kali. Data ini digunakan semata untuk validasi suara.
+            Satu NPM hanya dapat memilih satu kali. Data ini digunakan semata untuk validasi suara.
           </p>
         </form>
       </div>
@@ -455,7 +454,7 @@
 
         if (error) {
           if (error.code === '23505') {
-            showFormMessage('NIM Anda sudah pernah memberikan suara!', true);
+            showFormMessage('NPM Anda sudah pernah memberikan suara!', true);
           } else {
             showFormMessage('Gagal mengirim suara: ' + error.message, true);
           }
