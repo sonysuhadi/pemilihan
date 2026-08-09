@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pendaftaran Calon — HIMATEKKOM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { ink: '#060B14', surface: '#0F1826', surface2: '#16213A', hairline: '#22304A', cyan: '#4CE0C7', amber: '#F5B942', muted: '#7C8AAE' },
+          fontFamily: { display: ['"Space Grotesk"', 'sans-serif'], body: ['Inter', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] },
+        },
+      },
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { background-color: #060B14; }
+    .circuit-bg {
+      background-image: linear-gradient(#1B2740 1px, transparent 1px), linear-gradient(90deg, #1B2740 1px, transparent 1px);
+      background-size: 44px 44px;
+      -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black 30%, transparent 85%);
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black 30%, transparent 85%);
+    }
+  </style>
+</head>
+<body class="font-body text-[#EDF2FF] min-h-screen pb-16">
+
+  <header class="relative overflow-hidden border-b border-hairline py-8 px-6">
+    <div class="absolute inset-0 circuit-bg pointer-events-none"></div>
+    <div class="relative max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <span class="text-xs font-mono text-cyan tracking-widest uppercase">REGISTRASI PASLON</span>
+        <h1 class="font-display font-bold text-2xl sm:text-3xl text-white mt-1">Pendaftaran Kandidat<span class="text-cyan">.</span></h1>
+      </div>
+      <div class="flex items-center gap-3 text-xs font-mono">
+        <a href="index.html" class="px-3 py-1.5 rounded border border-hairline hover:border-cyan hover:text-cyan transition">← Voting</a>
+        <a href="admin.html" class="px-3 py-1.5 rounded border border-hairline hover:border-cyan hover:text-cyan transition">Dashboard Admin</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-6 mt-10">
+    <form id="candidate-form" class="bg-surface border border-hairline rounded-xl p-6 sm:p-8 space-y-6">
+      <div>
+        <label for="nomor-urut" class="block text-xs font-mono text-muted mb-1.5">Nomor Urut Paslon *</label>
+        <input id="nomor-urut" type="number" min="1" required placeholder="Contoh: 1" class="w-full bg-surface2 border border-hairline rounded-md px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan" />
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label for="nama-ketua" class="block text-xs font-mono text-muted mb-1.5">Nama Calon Ketua *</label>
+          <input id="nama-ketua" type="text" required placeholder="Nama Lengkap Ketua" class="w-full bg-surface2 border border-hairline rounded-md px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan" />
+        </div>
+        <div>
+          <label for="nama-wakil" class="block text-xs font-mono text-muted mb-1.5">Nama Calon Wakil</label>
+          <input id="nama-wakil" type="text" placeholder="Nama Lengkap Wakil (Opsional)" class="w-full bg-surface2 border border-hairline rounded-md px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan" />
+        </div>
+      </div>
+
+      <div>
+        <label for="foto-file" class="block text-xs font-mono text-muted mb-1.5">Foto Paslon (JPG/PNG)</label>
+        <div class="flex flex-col gap-3">
+          <input id="foto-file" type="file" accept="image/png, image/jpeg, image/webp" class="w-full bg-surface2 border border-hairline rounded-md px-3 py-2 text-sm text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-mono file:bg-hairline file:text-cyan cursor-pointer" />
+          <div id="preview-container" class="hidden flex items-center gap-4 bg-surface2/60 border border-hairline p-3 rounded-lg">
+            <img id="image-preview" src="" alt="Preview" class="w-16 h-16 object-cover rounded border border-hairline" />
+            <div class="text-xs font-mono text-muted">
+              <p id="preview-filename" class="text-white truncate max-w-[180px]"></p>
+              <button type="button" id="btn-remove-photo" class="text-red-400 hover:underline mt-1 text-[11px]">Hapus foto</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label for="visi-misi" class="block text-xs font-mono text-muted mb-1.5">Visi & Misi *</label>
+        <textarea id="visi-misi" rows="6" required placeholder="Tuliskan Visi dan Poin-Poin Misi Paslon di sini..." class="w-full bg-surface2 border border-hairline rounded-md px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan"></textarea>
+      </div>
+
+      <p id="form-message" class="text-xs font-mono hidden"></p>
+
+      <button id="btn-submit" type="submit" class="w-full py-3 rounded-lg bg-cyan text-ink font-semibold text-sm hover:brightness-110 transition disabled:opacity-50">
+        Simpan & Daftarkan Kandidat
+      </button>
+    </form>
+  </main>
+
+  <script>
+    const SUPABASE_URL = 'https://gvymeyyozglpljpgdbfi.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2eW1leXlvemdscGxqcGdkYmZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMzc0ODksImV4cCI6MjEwMDkxMzQ4OX0.2jM9Nf-0sVO9AKAkXIAEuSmlV0TIYVR_32umrehhGLw';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const fotoFileInput = document.getElementById('foto-file');
+    const previewContainer = document.getElementById('preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const previewFilename = document.getElementById('preview-filename');
+
+    fotoFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          imagePreview.src = evt.target.result;
+          previewFilename.textContent = file.name;
+          previewContainer.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('btn-remove-photo').addEventListener('click', () => {
+      fotoFileInput.value = '';
+      previewContainer.classList.add('hidden');
+    });
+
+    document.getElementById('candidate-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nomor_urut = parseInt(document.getElementById('nomor-urut').value, 10);
+      const nama_ketua = document.getElementById('nama-ketua').value.trim();
+      const nama_wakil = document.getElementById('nama-wakil').value.trim();
+      const visi_misi = document.getElementById('visi-misi').value.trim();
+      const file = fotoFileInput.files[0];
+
+      const btn = document.getElementById('btn-submit');
+      const msg = document.getElementById('form-message');
+
+      msg.classList.add('hidden');
+      btn.disabled = true;
+      let photoPublicUrl = null;
+
+      try {
+        if (file) {
+          btn.textContent = 'Mengunggah foto...';
+          const fileExt = file.name.split('.').pop();
+          const fileName = `paslon-${nomor_urut}-${Date.now()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage.from('candidate-photos').upload(fileName, file);
+          if (uploadError) throw uploadError;
+
+          const { data: publicUrlData } = supabase.storage.from('candidate-photos').getPublicUrl(fileName);
+          photoPublicUrl = publicUrlData.publicUrl;
+        }
+
+        btn.textContent = 'Menyimpan data...';
+        const { error: dbError } = await supabase.from('candidates').insert([{
+          nomor_urut, nama_ketua, nama_wakil: nama_wakil || null, foto_url: photoPublicUrl, visi_misi
+        }]);
+
+        if (dbError) throw dbError;
+
+        msg.textContent = 'Berhasil! Candidate baru telah didaftarkan.';
+        msg.className = 'text-xs font-mono text-cyan';
+        msg.classList.remove('hidden');
+        document.getElementById('candidate-form').reset();
+        previewContainer.classList.add('hidden');
+      } catch (err) {
+        msg.textContent = 'Gagal: ' + (err.message || 'Terjadi kesalahan');
+        msg.className = 'text-xs font-mono text-red-400';
+        msg.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Simpan & Daftarkan Kandidat';
+      }
+    });
+  </script>
+</body>
+</html>
