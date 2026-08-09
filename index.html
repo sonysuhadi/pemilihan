@@ -110,7 +110,7 @@
   <!-- ============ CANDIDATES ============ -->
   <main id="kandidat" class="max-w-5xl mx-auto px-6 py-14 scroll-mt-6">
     <div class="flex items-baseline justify-between mb-8">
-      <h2 class="font-display text-2xl text-white">Daftar Kandidat</h2>
+      <h2 class="font-display text-2xl text-white font-bold">Daftar Kandidat</h2>
       <span class="font-mono text-xs text-muted">TOTAL_PASANGAN: <span id="candidate-count">--</span></span>
     </div>
 
@@ -118,7 +118,7 @@
       <span class="w-1.5 h-1.5 rounded-full bg-cyan pulse-dot"></span> Memuat data kandidat...
     </div>
     <div id="candidates-empty" class="hidden font-mono text-sm text-amber bg-amber/5 border border-amber/30 rounded-lg px-4 py-3"></div>
-    <div id="candidates-grid" class="grid sm:grid-cols-2 gap-5"></div>
+    <div id="candidates-grid" class="grid sm:grid-cols-2 gap-6"></div>
   </main>
 
   <footer class="border-t border-hairline">
@@ -176,9 +176,8 @@
 
   <script>
     const SUPABASE_URL = 'https://gvymeyyozglpljpgdbfi.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2eW1leXlvemdscGxqcGdkYmZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMzc0ODksImV4cCI6MjEwMDkxMzQ4OX0.2jM9Nf-0sVO9AKAkXIAEuSmlV0TIYVR_32umrehhGLw';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInRefiI6Imd2eW1leXlvemdscGxqcGdkYmZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMzc0ODksImV4cCI6MjEwMDkxMzQ4OX0.2jM9Nf-0sVO9AKAkXIAEuSmlV0TIYVR_32umrehhGLw';
 
-    // Inisialisasi client Supabase dengan opsi pencegahan Tracking Prevention
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         persistSession: false,
@@ -227,24 +226,33 @@
         }
 
         grid.innerHTML = candidatesCache.map(c => `
-          <div class="card-hover group bg-surface border border-hairline rounded-xl p-6 flex flex-col">
-            <div class="flex items-start justify-between mb-5">
-              <span class="font-mono text-4xl font-semibold text-hairline group-hover:text-cyan/40 transition">
-                ${String(c.nomor_urut || 1).padStart(2, '0')}
+          <div class="card-hover group bg-surface border border-hairline rounded-xl overflow-hidden flex flex-col">
+            <!-- Header Foto Paslon -->
+            <div class="relative w-full h-60 bg-surface2 border-b border-hairline overflow-hidden flex items-center justify-center">
+              <span class="absolute top-3 left-4 font-mono text-sm font-bold text-cyan bg-ink/80 backdrop-blur-md px-3 py-1 rounded-md border border-hairline z-10 shadow-lg">
+                PASLON ${String(c.nomor_urut || 1).padStart(2, '0')}
               </span>
               ${c.foto_url 
-                ? `<img src="${c.foto_url}" alt="${c.nama_ketua}" class="w-16 h-16 rounded-full object-cover border-2 border-hairline group-hover:border-cyan transition" />`
-                : `<div class="w-16 h-16 rounded-full bg-surface2 border border-hairline flex items-center justify-center font-mono text-base text-cyan">
-                    ${initials(c.nama_ketua)}
+                ? `<img src="${c.foto_url}" alt="${c.nama_ketua}" class="w-full h-full object-cover object-top group-hover:scale-105 transition duration-500" />`
+                : `<div class="flex flex-col items-center justify-center gap-2">
+                    <div class="w-20 h-20 rounded-full bg-surface border border-hairline flex items-center justify-center font-mono text-2xl font-bold text-cyan">
+                      ${initials(c.nama_ketua)}
+                    </div>
                    </div>`
               }
             </div>
-            <h3 class="font-display text-xl font-semibold text-white leading-snug">${c.nama_ketua}</h3>
-            ${c.nama_wakil ? `<p class="text-sm text-muted mb-3">Wakil: ${c.nama_wakil}</p>` : '<div class="mb-3"></div>'}
-            ${c.visi_misi ? `<div class="text-sm text-[#C7D0E8] leading-relaxed mb-6 flex-1 whitespace-pre-line bg-surface2/40 p-3 rounded-lg border border-hairline/50">${c.visi_misi}</div>` : '<div class="flex-1"></div>'}
-            <button class="btn-vote mt-auto w-full py-2.5 rounded-md border border-cyan text-cyan text-sm font-semibold hover:bg-cyan hover:text-ink transition" data-id="${c.id}">
-              Pilih Kandidat Ini
-            </button>
+
+            <!-- Detail Informasi -->
+            <div class="p-6 flex flex-col flex-1">
+              <h3 class="font-display text-2xl font-bold text-white leading-tight">${c.nama_ketua}</h3>
+              ${c.nama_wakil ? `<p class="text-sm font-medium text-cyan mt-1 mb-4">Wakil: ${c.nama_wakil}</p>` : '<div class="mb-4"></div>'}
+              
+              ${c.visi_misi ? `<div class="text-sm text-[#C7D0E8] leading-relaxed mb-6 flex-1 whitespace-pre-line bg-surface2/50 p-4 rounded-lg border border-hairline/60">${c.visi_misi}</div>` : '<div class="flex-1"></div>'}
+              
+              <button class="btn-vote mt-auto w-full py-3 rounded-lg bg-cyan/10 border border-cyan text-cyan text-sm font-semibold hover:bg-cyan hover:text-ink transition duration-200" data-id="${c.id}">
+                Pilih Kandidat Ini
+              </button>
+            </div>
           </div>
         `).join('');
 
@@ -269,7 +277,7 @@
       document.getElementById('modal-success-state').classList.add('hidden');
 
       document.getElementById('modal-candidate-name').textContent =
-        `#${String(selectedCandidate.nomor_urut || 1).padStart(2, '0')} — ${selectedCandidate.nama_ketua}`;
+        `PASLON #${String(selectedCandidate.nomor_urut || 1).padStart(2, '0')} — ${selectedCandidate.nama_ketua}`;
 
       document.getElementById('form-message').classList.add('hidden');
       document.getElementById('vote-form').reset();
