@@ -157,7 +157,17 @@
     let candidatesCache = [];
     let refreshTimer = null;
 
-    // Supabase Auth State Listener
+    // Cek Session Saat Pertama Kali Buka Halaman
+    async function initAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        showDashboard();
+      } else {
+        showLogin();
+      }
+    }
+
+    // Listener Perubahan Status Login
     supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         showDashboard();
@@ -204,6 +214,8 @@
       if (error) {
         msg.textContent = 'Gagal masuk: ' + error.message;
         msg.classList.remove('hidden');
+      } else {
+        showDashboard();
       }
     });
 
@@ -294,6 +306,9 @@
     }
 
     document.getElementById('btn-refresh').addEventListener('click', loadData);
+
+    // Jalankan pemeriksaan awal
+    initAuth();
   </script>
 </body>
 </html>
