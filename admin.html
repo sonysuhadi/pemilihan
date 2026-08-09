@@ -46,7 +46,6 @@
 
 <body class="font-body text-[#EDF2FF] min-h-screen">
 
-  <!-- ============ DASHBOARD SCREEN ============ -->
   <div id="dashboard-screen">
     <header class="relative overflow-hidden border-b border-hairline">
       <div class="absolute inset-0 circuit-bg pointer-events-none"></div>
@@ -59,7 +58,6 @@
           <h1 class="font-display font-bold text-3xl text-white">Rekap Suara<span class="text-cyan">.</span></h1>
         </div>
         <div class="flex items-center gap-2 text-xs font-mono">
-          <a href="pendaftaran.html" class="px-3 py-2 rounded border border-hairline hover:border-cyan hover:text-cyan transition">+ Calon</a>
           <button id="btn-refresh" class="px-3 py-2 rounded border border-hairline hover:border-cyan hover:text-cyan transition">↻ Refresh</button>
           <a href="index.html" class="px-3 py-2 rounded border border-hairline hover:border-amber hover:text-amber transition">← Voting</a>
         </div>
@@ -87,13 +85,13 @@
         </div>
       </section>
 
-      <!-- Grafik/Bar Suara -->
+      <!-- Perolehan Suara -->
       <section>
         <h2 class="font-display text-xl text-white mb-4">Perolehan Suara</h2>
         <div id="results-list" class="space-y-4"></div>
       </section>
 
-      <!-- Audit Log Pemilih -->
+      <!-- Log Pemilih -->
       <section>
         <h2 class="font-display text-xl text-white mb-4">Log Pemilih</h2>
         <div class="border border-hairline rounded-xl overflow-x-auto bg-surface">
@@ -116,29 +114,54 @@
   <script>
     const SUPABASE_URL = 'https://gvymeyyozglpljpgdbfi.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2eW1leXlvemdscGxqcGdkYmZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMzc0ODksImV4cCI6MjEwMDkxMzQ4OX0.2jM9Nf-0sVO9AKAkXIAEuSmlV0TIYVR_32umrehhGLw';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Menggunakan variabel 'db' agar tidak bentrok dengan variabel global 'supabase'
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    });
 
     let candidatesCache = [];
 
-    // Load Data
     async function loadData() {
       try {
         const [{ data: results, error: resErr }, { data: candidates, error: candErr }, { data: votes, error: voteErr }] = await Promise.all([
-          supabase.rpc('get_results'),
-          supabase.from('candidates').select('*').order('nomor_urut'),
-          supabase.from('votes').select('voter_nim, voter_nama, candidate_id, created_at').order('created_at', { ascending: false })
+          db.rpc('get_results'),
+          db.from('candidates').select('*').order('nomor_urut', { ascending: true }),
+          db.from('votes').select('*').order('created_at', { ascending: false })
         ]);
 
-        if (resErr) console.error('Error fetching results:', resErr);
-        if (candErr) console.error('Error fetching candidates:', candErr);
-        if (voteErr) console.error('Error fetching votes:', voteErr);
+        if (resErr) console.warn('RPC Notice (menggunakan fallback perhitungan otomatis):', resErr.message);
+        if (candErr) console.error('Error Candidates:', candErr.message);
+        if (voteErr) console.error('Error Votes:', voteErr.message);
 
         candidatesCache = candidates || [];
-        renderStats(results || []);
-        renderResults(results || []);
-        renderAudit(votes || []);
+        const voteList = votes || [];
+
+        // Hitung manual secara presisi jika RPC tidak merespons
+        let finalResults = [];
+        if (results && results.length > 0) {
+          finalResults = results;
+        } else {
+          const counts = {};
+          voteList.forEach(v => {
+            const cid = String(v.candidate_id);
+            counts[cid] = (counts[cid] || 0) + 1;
+          });
+
+          finalResults = candidatesCache.map(c => ({
+            candidate_id: c.id,
+            nomor_urut: c.nomor_urut,
+            nama_ketua: c.nama_ketua,
+            nama_wakil: c.nama_wakil,
+            total_votes: counts[String(c.id)] || 0
+          }));
+        }
+
+        renderStats(finalResults);
+        renderResults(finalResults);
+        renderAudit(voteList);
       } catch (err) {
-        console.error('Data Error:', err);
+        console.error('Data Load Error:', err);
       }
     }
 
@@ -151,7 +174,14 @@
 
       document.getElementById('stat-total').textContent = total;
       document.getElementById('stat-candidates').textContent = rows.length;
-      document.getElementById('stat-leader').textContent = leader && total > 0 ? `#${leader.nomor_urut} ${leader.nama_ketua}` : '-';
+      
+      if (leader && total > 0) {
+        const name = leader.nama_wakil ? `${leader.nama_ketua} & ${leader.nama_wakil}` : leader.nama_ketua;
+        document.getElementById('stat-leader').textContent = `#${leader.nomor_urut} ${name}`;
+      } else {
+        document.getElementById('stat-leader').textContent = '-';
+      }
+      
       document.getElementById('stat-margin').textContent = total > 0 ? margin : 0;
     }
 
@@ -160,17 +190,24 @@
       const total = rows.reduce((s, r) => s + Number(r.total_votes), 0);
       const maxVotes = Math.max(0, ...rows.map(r => Number(r.total_votes)));
 
+      if (rows.length === 0) {
+        list.innerHTML = `<div class="p-4 bg-surface border border-hairline rounded-xl text-center text-muted font-mono text-xs">Belum ada kandidat terdaftar.</div>`;
+        return;
+      }
+
       list.innerHTML = rows.map(r => {
         const votes = Number(r.total_votes);
         const pct = total > 0 ? Math.round((votes / total) * 1000) / 10 : 0;
         const isLeading = votes > 0 && votes === maxVotes;
+        const paslonName = r.nama_wakil ? `${r.nama_ketua} & ${r.nama_wakil}` : r.nama_ketua;
+
         return `
           <div class="bg-surface border ${isLeading ? 'border-cyan/50' : 'border-hairline'} rounded-xl p-4">
             <div class="flex justify-between items-baseline mb-2 text-sm">
-              <span class="text-white"><span class="font-mono text-cyan">#${r.nomor_urut}</span> ${r.nama_ketua}</span>
+              <span class="text-white"><span class="font-mono text-cyan">#${String(r.nomor_urut || 1).padStart(2, '0')}</span> ${paslonName}</span>
               <span class="font-mono text-xs text-muted">${votes} suara · ${pct}%</span>
             </div>
-            <div class="h-2 rounded-full bg-surface2 border border-hairline overflow-hidden">
+            <div class="h-2.5 rounded-full bg-surface2 border border-hairline overflow-hidden">
               <div class="bar-fill h-full rounded-full ${isLeading ? 'bg-cyan bar-glow' : 'bg-cyan/50'}" style="width:${pct}%"></div>
             </div>
           </div>
@@ -180,7 +217,8 @@
 
     function renderAudit(rows) {
       const body = document.getElementById('audit-body');
-      const candMap = Object.fromEntries(candidatesCache.map(c => [c.id, c]));
+      const candMap = {};
+      candidatesCache.forEach(c => { candMap[String(c.id)] = c; });
 
       if (rows.length === 0) {
         body.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-center text-muted font-mono text-xs">Belum ada suara yang masuk.</td></tr>`;
@@ -188,13 +226,17 @@
       }
 
       body.innerHTML = rows.map(v => {
-        const c = candMap[v.candidate_id];
+        const c = candMap[String(v.candidate_id)];
+        const candName = c 
+          ? (c.nama_wakil ? `#${c.nomor_urut} ${c.nama_ketua} & ${c.nama_wakil}` : `#${c.nomor_urut} ${c.nama_ketua}`) 
+          : '—';
+
         return `
-          <tr class="border-b border-hairline/60 text-xs">
+          <tr class="border-b border-hairline/60 text-xs hover:bg-surface2/30 transition">
             <td class="px-4 py-2.5 font-mono text-muted">${new Date(v.created_at).toLocaleString('id-ID')}</td>
             <td class="px-4 py-2.5 font-mono text-white">${v.voter_nim}</td>
             <td class="px-4 py-2.5 text-white">${v.voter_nama}</td>
-            <td class="px-4 py-2.5 text-cyan">${c ? '#' + c.nomor_urut + ' ' + c.nama_ketua : '—'}</td>
+            <td class="px-4 py-2.5 text-cyan font-medium">${candName}</td>
           </tr>
         `;
       }).join('');
@@ -202,7 +244,6 @@
 
     document.getElementById('btn-refresh').addEventListener('click', loadData);
 
-    // Langsung load data & jalankan auto-refresh 5 detik
     loadData();
     setInterval(loadData, 5000);
   </script>
