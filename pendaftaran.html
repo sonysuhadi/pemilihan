@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pendaftaran Calon — HIMATEKKOM</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -18,6 +20,7 @@
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <style>
     body { background-color: #060B14; }
     .circuit-bg {
@@ -90,15 +93,18 @@
   </main>
 
   <script>
+    // 1. Inisialisasi Klien Supabase (Hanya 1 kali deklarasi)
     const SUPABASE_URL = 'https://gvymeyyozglpljpgdbfi.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2eW1leXlvemdscGxqcGdkYmZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMzc0ODksImV4cCI6MjEwMDkxMzQ4OX0.2jM9Nf-0sVO9AKAkXIAEuSmlV0TIYVR_32umrehhGLw';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // 2. Element DOM
     const fotoFileInput = document.getElementById('foto-file');
     const previewContainer = document.getElementById('preview-container');
     const imagePreview = document.getElementById('image-preview');
     const previewFilename = document.getElementById('preview-filename');
 
+    // 3. Event Handling Preview Foto
     fotoFileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
@@ -117,8 +123,10 @@
       previewContainer.classList.add('hidden');
     });
 
+    // 4. Submit Form Pendaftaran ke Supabase
     document.getElementById('candidate-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      
       const nomor_urut = parseInt(document.getElementById('nomor-urut').value, 10);
       const nama_ketua = document.getElementById('nama-ketua').value.trim();
       const nama_wakil = document.getElementById('nama-wakil').value.trim();
@@ -133,34 +141,41 @@
       let photoPublicUrl = null;
 
       try {
+        // Upload Foto (Jika Ada File yang Dipilih)
         if (file) {
           btn.textContent = 'Mengunggah foto...';
           const fileExt = file.name.split('.').pop();
           const fileName = `paslon-${nomor_urut}-${Date.now()}.${fileExt}`;
           
-          const { error: uploadError } = await supabase.storage.from('candidate-photos').upload(fileName, file);
-          if (uploadError) throw uploadError;
+          const { error: uploadError } = await supabaseClient.storage.from('candidate-photos').upload(fileName, file);
+          if (uploadError) throw new Error('Gagal Upload Foto: ' + uploadError.message);
 
-          const { data: publicUrlData } = supabase.storage.from('candidate-photos').getPublicUrl(fileName);
+          const { data: publicUrlData } = supabaseClient.storage.from('candidate-photos').getPublicUrl(fileName);
           photoPublicUrl = publicUrlData.publicUrl;
         }
 
+        // Insert Data ke Database
         btn.textContent = 'Menyimpan data...';
-        const { error: dbError } = await supabase.from('candidates').insert([{
-          nomor_urut, nama_ketua, nama_wakil: nama_wakil || null, foto_url: photoPublicUrl, visi_misi
+        const { error: dbError } = await supabaseClient.from('candidates').insert([{
+          nomor_urut, 
+          nama_ketua, 
+          nama_wakil: nama_wakil || null, 
+          foto_url: photoPublicUrl, 
+          visi_misi
         }]);
 
-        if (dbError) throw dbError;
+        if (dbError) throw new Error('Gagal Simpan Database: ' + dbError.message);
 
+        // Notifikasi Berhasil
         msg.textContent = 'Berhasil! Candidate baru telah didaftarkan.';
-        msg.className = 'text-xs font-mono text-cyan';
-        msg.classList.remove('hidden');
+        msg.className = 'text-xs font-mono text-cyan block mt-3';
         document.getElementById('candidate-form').reset();
         previewContainer.classList.add('hidden');
+
       } catch (err) {
-        msg.textContent = 'Gagal: ' + (err.message || 'Terjadi kesalahan');
-        msg.className = 'text-xs font-mono text-red-400';
-        msg.classList.remove('hidden');
+        console.error('Error Detail:', err);
+        msg.textContent = err.message || 'Terjadi kesalahan saat menyimpan data.';
+        msg.className = 'text-xs font-mono text-red-400 block mt-3';
       } finally {
         btn.disabled = false;
         btn.textContent = 'Simpan & Daftarkan Kandidat';
