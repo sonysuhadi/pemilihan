@@ -175,11 +175,17 @@
   </div>
 
   <script>
-    // Konfigurasi Supabase Otomatis
     const SUPABASE_URL = 'https://gvymeyyozglpljpgdbfi.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2eW1leXlvemdscGxqcGdkYmZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMzc0ODksImV4cCI6MjEwMDkxMzQ4OX0.2jM9Nf-0sVO9AKAkXIAEuSmlV0TIYVR_32umrehhGLw';
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Inisialisasi client Supabase dengan opsi pencegahan Tracking Prevention
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    });
 
     document.getElementById('footer-year').textContent = new Date().getFullYear();
 
@@ -202,7 +208,7 @@
       const grid = document.getElementById('candidates-grid');
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await db
           .from('candidates')
           .select('*')
           .order('nomor_urut', { ascending: true });
@@ -224,18 +230,18 @@
           <div class="card-hover group bg-surface border border-hairline rounded-xl p-6 flex flex-col">
             <div class="flex items-start justify-between mb-5">
               <span class="font-mono text-4xl font-semibold text-hairline group-hover:text-cyan/40 transition">
-                ${String(c.nomor_urut).padStart(2, '0')}
+                ${String(c.nomor_urut || 1).padStart(2, '0')}
               </span>
               ${c.foto_url 
-                ? `<img src="${c.foto_url}" alt="${c.nama_ketua}" class="w-14 h-14 rounded-full object-cover border border-hairline" />`
-                : `<div class="w-12 h-12 rounded-full bg-surface2 border border-hairline flex items-center justify-center font-mono text-sm text-cyan">
+                ? `<img src="${c.foto_url}" alt="${c.nama_ketua}" class="w-16 h-16 rounded-full object-cover border-2 border-hairline group-hover:border-cyan transition" />`
+                : `<div class="w-16 h-16 rounded-full bg-surface2 border border-hairline flex items-center justify-center font-mono text-base text-cyan">
                     ${initials(c.nama_ketua)}
                    </div>`
               }
             </div>
-            <h3 class="font-display text-lg text-white leading-snug">${c.nama_ketua}</h3>
-            ${c.nama_wakil ? `<p class="text-sm text-muted mb-3">Berpasangan dengan ${c.nama_wakil}</p>` : '<div class="mb-3"></div>'}
-            ${c.visi_misi ? `<p class="text-sm text-[#C7D0E8] leading-relaxed mb-4 flex-1 whitespace-pre-line">${c.visi_misi}</p>` : '<div class="flex-1"></div>'}
+            <h3 class="font-display text-xl font-semibold text-white leading-snug">${c.nama_ketua}</h3>
+            ${c.nama_wakil ? `<p class="text-sm text-muted mb-3">Wakil: ${c.nama_wakil}</p>` : '<div class="mb-3"></div>'}
+            ${c.visi_misi ? `<div class="text-sm text-[#C7D0E8] leading-relaxed mb-6 flex-1 whitespace-pre-line bg-surface2/40 p-3 rounded-lg border border-hairline/50">${c.visi_misi}</div>` : '<div class="flex-1"></div>'}
             <button class="btn-vote mt-auto w-full py-2.5 rounded-md border border-cyan text-cyan text-sm font-semibold hover:bg-cyan hover:text-ink transition" data-id="${c.id}">
               Pilih Kandidat Ini
             </button>
@@ -248,9 +254,9 @@
 
       } catch (err) {
         loadingEl.classList.add('hidden');
-        emptyEl.textContent = 'Gagal memuat kandidat: ' + (err.message || err);
+        emptyEl.textContent = 'Gagal memuat kandidat: ' + (err.message || JSON.stringify(err));
         emptyEl.classList.remove('hidden');
-        console.error(err);
+        console.error("Error loading candidates:", err);
       }
     }
 
@@ -263,7 +269,7 @@
       document.getElementById('modal-success-state').classList.add('hidden');
 
       document.getElementById('modal-candidate-name').textContent =
-        `#${String(selectedCandidate.nomor_urut).padStart(2, '0')} — ${selectedCandidate.nama_ketua}`;
+        `#${String(selectedCandidate.nomor_urut || 1).padStart(2, '0')} — ${selectedCandidate.nama_ketua}`;
 
       document.getElementById('form-message').classList.add('hidden');
       document.getElementById('vote-form').reset();
@@ -301,8 +307,7 @@
       submitBtn.textContent = 'Mengirim...';
 
       try {
-        // Langsung insert ke tabel votes
-        const { error } = await supabase.from('votes').insert([
+        const { error } = await db.from('votes').insert([
           { voter_nim: nim, voter_nama: nama, candidate_id: selectedCandidate.id }
         ]);
 
